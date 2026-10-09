@@ -1,11 +1,11 @@
 [
   {
-    "titulo": "Central do Brasil",
-    "ano": "1998",
-    "video": "https://pixeldrain.com/api/file/TROQUE_PELO_CODIGO",
+    "titulo": "O Auto da Compadicida",
+    "ano": "2000",
+    "video": "https://pixeldrain.com/api/file/3VufvbpA",
     "legendas": {
-      "pt": "legendas/central-do-brasil.pt.srt",
-      "en": "legendas/central-do-brasil.en.srt"
+      "pt": "legendas/o-auto-da-compadecida.pt.srt",
+      "en": "legendas/o-auto-da-compadecida.en.srt"
     }
   }
 ]
