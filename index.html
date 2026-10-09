@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Não avisa ao servidor do vídeo qual site está tocando ele. Hosts como o
+     Pixeldrain bloqueiam vídeo embutido em outro site olhando esse aviso. -->
+<meta name="referrer" content="no-referrer">
 <title>Sessão Brasil</title>
 <style>
   :root{
@@ -113,7 +116,7 @@
 
 <!-- ======================= PLAYER ======================= -->
 <section id="player" class="oculto">
-  <video id="video" playsinline preload="metadata"></video>
+  <video id="video" playsinline preload="metadata" referrerpolicy="no-referrer"></video>
   <div id="legendas"><div class="leg" id="leg-pt"></div><div class="leg" id="leg-en"></div></div>
   <div id="toast"></div>
 
@@ -353,7 +356,25 @@ video.addEventListener("timeupdate", () => {
 video.addEventListener("seeked", desenharLegendas);
 video.addEventListener("play", () => $("ic-play").innerHTML = '<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>');
 video.addEventListener("pause", () => { $("ic-play").innerHTML = '<path d="M8 5v14l11-7z"/>'; acordarControles(); });
-video.addEventListener("error", () => mostrar("Este vídeo não abriu — veja o formato (MP4/H.264)"));
+video.addEventListener("error", () => {
+  const src = video.currentSrc || video.src || "";
+  const codigo = video.error ? video.error.code : 0;
+  let msg;
+  if (/pixeldrain\.com\/u\//.test(src))
+    msg = "Link errado: use /api/file/ e não /u/ no filmes.json";
+  else if (codigo === 2)
+    msg = "Erro de rede ao baixar o vídeo";
+  else if (codigo === 3)
+    msg = "O vídeo está corrompido ou num formato que o navegador não lê";
+  else if (codigo === 4)
+    msg = "O servidor recusou o vídeo ou o formato não é suportado (MP4/H.264)";
+  else
+    msg = "Este vídeo não abriu";
+  console.error("[Sessão Brasil] erro no vídeo", codigo, src);
+  mostrar(msg + " (código " + codigo + ")");
+  // o aviso fica na tela até a pessoa ler
+  clearTimeout(toastTimer); $("toast").classList.add("on");
+});
 video.addEventListener("click", alternarPlay);
 
 $("tempo-barra").addEventListener("input", e => {
