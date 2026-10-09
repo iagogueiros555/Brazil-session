@@ -40,6 +40,19 @@
     padding:10px 18px;font-weight:700;cursor:pointer;margin-top:14px}
   .aviso{color:#e89a7a;font-size:.9rem;margin-top:12px}
 
+  /* ---------- janela "escolha o arquivo" ---------- */
+  #modal{position:fixed;inset:0;background:#000b;display:flex;align-items:center;
+    justify-content:center;padding:16px;z-index:10}
+  #modal .caixa{background:var(--painel);border:1px solid var(--linha);border-radius:14px;
+    padding:22px;max-width:460px;width:100%}
+  #modal h2{margin:0 0 8px;font-size:1.25rem}
+  #modal p{color:var(--suave);margin:0 0 14px;font-size:.92rem;line-height:1.45}
+  #modal a{color:var(--acento);font-weight:600}
+  #m-arquivo{width:100%}
+  .linha-botoes{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+  .btn-sec{background:transparent;border:1px solid var(--linha);color:var(--texto);
+    border-radius:8px;padding:10px 16px;cursor:pointer}
+
   /* ---------- player ---------- */
   #player{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center}
   video{width:100%;height:100%;object-fit:contain;background:#000}
@@ -114,6 +127,19 @@
   </div>
 </section>
 
+<!-- ============ JANELA: ESCOLHER O ARQUIVO BAIXADO ============ -->
+<div id="modal" class="oculto"><div class="caixa">
+  <h2 id="m-titulo"></h2>
+  <p>Escolha o arquivo do filme que você baixou. As legendas vêm sozinhas.<br>
+     <span style="opacity:.8">Choose the movie file you downloaded. Subtitles load automatically.</span></p>
+  <input type="file" id="m-arquivo" accept="video/*,.mp4,.mkv,.webm">
+  <p id="m-baixar" style="margin:16px 0 0"></p>
+  <div class="linha-botoes">
+    <button class="btn-sec" id="m-cancelar">Cancelar</button>
+    <button class="btn" id="m-assistir" style="margin-top:0">▶ Assistir / Watch</button>
+  </div>
+</div></div>
+
 <!-- ======================= PLAYER ======================= -->
 <section id="player" class="oculto">
   <video id="video" playsinline preload="metadata" referrerpolicy="no-referrer"></video>
@@ -187,7 +213,32 @@
    Sessão Brasil — player com legendas duplas para estudar português.
    A lista de filmes vem do arquivo filmes.json, na mesma pasta.
    ===================================================================== */
+// =====================================================================
+// CHAVE DA API DO GOOGLE DRIVE — cole aqui a chave criada no Google Cloud.
+// Sem ela, os filmes do Drive não tocam (o Drive mostra uma página de aviso
+// de vírus no lugar de arquivos grandes; pela API o vídeo vem direto).
+// =====================================================================
+const GOOGLE_API_KEY = "AIzaSyCGFcaUGUDFiAYdrbSf0216GS69F88GZj8";
+
 const $ = id => document.getElementById(id);
+
+// Aceita o link de compartilhamento do Drive em qualquer formato
+// (.../file/d/ID/view, ...?id=ID) ou só o ID.
+function idDoDrive(link) {
+  const m = String(link).match(/\/d\/([\w-]{20,})|[?&]id=([\w-]{20,})|^([\w-]{20,})$/);
+  return m ? (m[1] || m[2] || m[3]) : null;
+}
+
+// Decide de onde vem o vídeo de um filme da lista
+function urlDoVideo(f) {
+  if (f.drive) {
+    const id = idDoDrive(f.drive);
+    if (!id) { alert("Link do Drive inválido no filmes.json: " + f.titulo); return null; }
+    if (!GOOGLE_API_KEY) { alert("Falta colar a chave da API do Google no index.html"); return null; }
+    return `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${GOOGLE_API_KEY}`;
+  }
+  return f.video || null;
+}
 const video = $("video");
 
 const estado = {
@@ -360,7 +411,9 @@ video.addEventListener("error", () => {
   const src = video.currentSrc || video.src || "";
   const codigo = video.error ? video.error.code : 0;
   let msg;
-  if (/pixeldrain\.com\/u\//.test(src))
+  if (src.includes("googleapis.com") && codigo === 4)
+    msg = "O Drive recusou: confira se o arquivo está como 'Qualquer pessoa com o link' e se a chave está certa";
+  else if (/pixeldrain\.com\/u\//.test(src))
     msg = "Link errado: use /api/file/ e não /u/ no filmes.json";
   else if (codigo === 2)
     msg = "Erro de rede ao baixar o vídeo";
@@ -371,6 +424,12 @@ video.addEventListener("error", () => {
   else
     msg = "Este vídeo não abriu";
   console.error("[Sessão Brasil] erro no vídeo", codigo, src);
+  const entrada = estado.filme && estado.filme.entrada;
+  if (entrada && entrada.baixar && !src.startsWith("blob:")) {
+    fecharPlayer();
+    pedirArquivo(entrada);
+    return;
+  }
   mostrar(msg + " (código " + codigo + ")");
   // o aviso fica na tela até a pessoa ler
   clearTimeout(toastTimer); $("toast").classList.add("on");
@@ -432,8 +491,8 @@ document.addEventListener("keydown", e => {
 });
 
 // ---------- abrir e fechar filmes ----------
-async function abrirFilme({ titulo, video: src, pt, en, chave }) {
-  estado.filme = { titulo, chave };
+async function abrirFilme({ titulo, video: src, pt, en, chave, entrada }) {
+  estado.filme = { titulo, chave, entrada };
   $("titulo").textContent = titulo;
   $("biblioteca").classList.add("oculto");
   $("player").classList.remove("oculto");
@@ -441,6 +500,9 @@ async function abrirFilme({ titulo, video: src, pt, en, chave }) {
 
   [estado.legendas.pt, estado.legendas.en] = await Promise.all([carregarLegenda(pt), carregarLegenda(en)]);
   definirAtraso(ler("sb_atraso_" + chave, 0));
+  // Para o Drive o site se identifica, assim a chave pode ser travada só para
+  // ele. Para os demais servidores, não (alguns bloqueiam vídeo embutido).
+  video.referrerPolicy = src.includes("googleapis.com") ? "origin" : "no-referrer";
   video.src = src;
 
   // volta de onde parou (se não estava praticamente no fim)
@@ -466,18 +528,55 @@ function fecharPlayer() {
 }
 
 let lista = [];
+
+// O progresso fica guardado pelo título: o endereço de um arquivo local muda
+// toda vez que ele é aberto, então não serve como identificação.
+const chaveDe = f => f.chave || f.titulo;
+
+// ---------- janela para escolher o arquivo baixado ----------
+let filmePedido = null;
+function pedirArquivo(f) {
+  filmePedido = f;
+  $("m-titulo").textContent = f.titulo;
+  $("m-arquivo").value = "";
+  const b = $("m-baixar");
+  b.innerHTML = "";
+  if (f.baixar) {
+    const a = document.createElement("a");
+    a.href = f.baixar; a.target = "_blank"; a.rel = "noopener noreferrer";
+    a.textContent = "⬇ Ainda não baixou? Baixar o filme · Download the movie";
+    b.appendChild(a);
+  }
+  $("modal").classList.remove("oculto");
+}
+$("m-cancelar").onclick = () => $("modal").classList.add("oculto");
+$("modal").addEventListener("click", e => { if (e.target.id === "modal") $("modal").classList.add("oculto"); });
+$("m-assistir").onclick = () => {
+  const v = $("m-arquivo").files[0];
+  if (!v) return alert("Escolha o arquivo do filme · Choose the movie file");
+  const f = filmePedido;
+  $("modal").classList.add("oculto");
+  abrirFilme({ titulo: f.titulo, video: URL.createObjectURL(v),
+               pt: f.legendas?.pt, en: f.legendas?.en, chave: chaveDe(f), entrada: f });
+};
+
 function montarBiblioteca() {
   const prog = ler("sb_prog", {});
   $("grade").innerHTML = "";
   lista.forEach((f, i) => {
-    const p = prog[f.video];
+    const p = prog[chaveDe(f)];
     const pct = p && p.d ? Math.min(100, (p.t / p.d) * 100) : 0;
     const b = document.createElement("button");
     b.className = "filme";
     b.innerHTML = `<b></b><small></small><div class="barra-prog"><i style="width:${pct}%"></i></div>`;
     b.querySelector("b").textContent = f.titulo;
     b.querySelector("small").textContent = [f.ano, f.legendas?.pt && "PT", f.legendas?.en && "EN"].filter(Boolean).join(" · ");
-    b.onclick = () => abrirFilme({ titulo: f.titulo, video: f.video, pt: f.legendas?.pt, en: f.legendas?.en, chave: f.video });
+    // com "video" toca online; sem ele, pede o arquivo que ela baixou
+    b.onclick = () => {
+      const src = urlDoVideo(f);
+      if (src) abrirFilme({ titulo: f.titulo, video: src, pt: f.legendas?.pt, en: f.legendas?.en, chave: chaveDe(f), entrada: f });
+      else if (f.baixar || !f.drive) pedirArquivo(f);
+    };
     $("grade").appendChild(b);
   });
 }
