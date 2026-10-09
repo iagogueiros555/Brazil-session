@@ -1,0 +1,11 @@
+[
+  {
+    "titulo": "Central do Brasil",
+    "ano": "1998",
+    "video": "https://pixeldrain.com/api/file/TROQUE_PELO_CODIGO",
+    "legendas": {
+      "pt": "legendas/central-do-brasil.pt.srt",
+      "en": "legendas/central-do-brasil.en.srt"
+    }
+  }
+]

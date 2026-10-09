@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sessão Brasil</title>
+<style>
+  :root{
+    --bg:#0e0d0c; --painel:#1a1816; --linha:#2c2925; --texto:#f2ede4; --suave:#9b948a;
+    --acento:#f2b33d; --verde:#3fa66b;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--texto);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  button,select,input{font:inherit;color:inherit}
+  .oculto{display:none!important}
+
+  /* ---------- biblioteca ---------- */
+  #biblioteca{max-width:960px;margin:0 auto;padding:32px 16px 48px}
+  h1{font-size:2rem;margin:0 0 4px;letter-spacing:-.02em}
+  h1 span{color:var(--acento)}
+  .sub{color:var(--suave);margin:0 0 28px}
+  .grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+  .filme{background:var(--painel);border:1px solid var(--linha);border-radius:12px;
+    padding:16px;cursor:pointer;text-align:left;transition:border-color .15s,transform .15s}
+  .filme:hover{border-color:var(--acento);transform:translateY(-2px)}
+  .filme b{display:block;font-size:1.05rem;margin-bottom:6px}
+  .filme small{color:var(--suave)}
+  .barra-prog{height:4px;background:var(--linha);border-radius:2px;margin-top:12px;overflow:hidden}
+  .barra-prog i{display:block;height:100%;background:var(--acento)}
+  .local{margin-top:36px;padding:20px;border:1px dashed var(--linha);border-radius:12px}
+  .local h2{font-size:1rem;margin:0 0 4px}
+  .local p{color:var(--suave);margin:0 0 14px;font-size:.9rem}
+  .campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+  .campos label{font-size:.85rem;color:var(--suave);display:flex;flex-direction:column;gap:6px}
+  .btn{background:var(--acento);color:#1a1205;border:0;border-radius:8px;
+    padding:10px 18px;font-weight:700;cursor:pointer;margin-top:14px}
+  .aviso{color:#e89a7a;font-size:.9rem;margin-top:12px}
+
+  /* ---------- player ---------- */
+  #player{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center}
+  video{width:100%;height:100%;object-fit:contain;background:#000}
+  #legendas{position:absolute;left:0;right:0;bottom:110px;display:flex;flex-direction:column;
+    align-items:center;gap:6px;pointer-events:none;padding:0 16px;transition:bottom .2s}
+  #player.sem-controles #legendas{bottom:40px}
+  .leg{max-width:90%;text-align:center;line-height:1.3;padding:4px 12px;border-radius:6px;
+    background:rgba(0,0,0,.72);text-shadow:0 1px 2px #000;white-space:pre-line}
+  #leg-pt{font-size:clamp(18px,2.6vw,34px);font-weight:600;color:#fff}
+  #leg-en{font-size:clamp(14px,1.9vw,24px);color:#f7d78f}
+  .leg:empty{display:none}
+
+  #topo{position:absolute;top:0;left:0;right:0;padding:14px 18px;display:flex;align-items:center;gap:12px;
+    background:linear-gradient(#000c,#0000);transition:opacity .25s}
+  #titulo{font-weight:600}
+  #controles{position:absolute;left:0;right:0;bottom:0;padding:10px 16px 14px;
+    background:linear-gradient(#0000,#000d 40%);transition:opacity .25s}
+  #player.sem-controles #controles,#player.sem-controles #topo{opacity:0;pointer-events:none}
+  #player.sem-controles{cursor:none}
+
+  #tempo-barra{width:100%;accent-color:var(--acento);cursor:pointer;margin:0 0 6px}
+  .linha{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .ic{background:transparent;border:0;cursor:pointer;width:42px;height:42px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:20px}
+  .ic:hover{background:#ffffff18}
+  .ic svg{width:22px;height:22px;fill:currentColor}
+  .rotulo-ic{font-size:11px;font-weight:700;letter-spacing:.02em}
+  #relogio{font-variant-numeric:tabular-nums;color:#ddd;font-size:.9rem;margin:0 8px}
+  .espaco{flex:1}
+  .grupo{display:inline-flex;background:#ffffff12;border-radius:8px;padding:2px}
+  .grupo button{background:transparent;border:0;padding:7px 10px;border-radius:6px;cursor:pointer;
+    font-size:.85rem;font-weight:600;color:#ccc}
+  .grupo button.ativo{background:var(--acento);color:#1a1205}
+  select{background:#ffffff12;border:0;border-radius:8px;padding:8px;cursor:pointer}
+  select option{background:#222}
+  #volume{width:80px;accent-color:var(--acento)}
+  .sinc-box{display:inline-flex;align-items:center;gap:2px}
+  #sinc{font-size:.8rem;color:#ccc;font-variant-numeric:tabular-nums;min-width:56px;text-align:center}
+  #toast{position:absolute;top:70px;left:50%;transform:translateX(-50%);background:#000c;
+    padding:8px 16px;border-radius:8px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none}
+  #toast.on{opacity:1}
+  #ajuda{position:absolute;inset:0;background:#000d;display:flex;align-items:center;justify-content:center}
+  #ajuda div{background:var(--painel);border-radius:12px;padding:22px 26px;max-width:420px}
+  #ajuda table{border-collapse:collapse;width:100%}
+  #ajuda td{padding:5px 8px;font-size:.92rem}
+  #ajuda td:first-child{color:var(--acento);font-weight:700;white-space:nowrap}
+  @media (max-width:640px){
+    #volume,.so-largo{display:none}
+    .ic{width:38px;height:38px}
+    #legendas{bottom:178px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ======================= BIBLIOTECA ======================= -->
+<section id="biblioteca">
+  <h1>Sessão <span>Brasil</span></h1>
+  <p class="sub">Filmes brasileiros para aprender português · Brazilian films to learn Portuguese</p>
+  <div class="grade" id="grade"></div>
+  <p class="aviso oculto" id="aviso-lista"></p>
+
+  <div class="local">
+    <h2>Abrir do seu dispositivo · Open from your device</h2>
+    <p>Escolha o vídeo e as legendas (.srt ou .vtt) · Pick the video and the subtitles</p>
+    <div class="campos">
+      <label>Vídeo / Video<input type="file" id="arq-video" accept="video/*"></label>
+      <label>Legenda PT<input type="file" id="arq-pt" accept=".srt,.vtt"></label>
+      <label>Legenda EN<input type="file" id="arq-en" accept=".srt,.vtt"></label>
+    </div>
+    <button class="btn" id="abrir-local">▶ Assistir / Watch</button>
+  </div>
+</section>
+
+<!-- ======================= PLAYER ======================= -->
+<section id="player" class="oculto">
+  <video id="video" playsinline preload="metadata"></video>
+  <div id="legendas"><div class="leg" id="leg-pt"></div><div class="leg" id="leg-en"></div></div>
+  <div id="toast"></div>
+
+  <div id="topo">
+    <button class="ic" id="voltar" title="Voltar / Back">←</button>
+    <span id="titulo"></span>
+  </div>
+
+  <div id="controles">
+    <input type="range" id="tempo-barra" min="0" max="1000" value="0" step="1">
+    <div class="linha">
+      <button class="ic" id="b-frase-ant" title="Frase anterior / Previous line (A)">
+        <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg></button>
+      <button class="ic" id="b-menos" title="-10s (←)"><span class="rotulo-ic">−10</span></button>
+      <button class="ic" id="b-play" title="Play / Pause (espaço)">
+        <svg viewBox="0 0 24 24" id="ic-play"><path d="M8 5v14l11-7z"/></svg></button>
+      <button class="ic" id="b-mais" title="+10s (→)"><span class="rotulo-ic">+10</span></button>
+      <button class="ic" id="b-frase-prox" title="Próxima frase / Next line (D)">
+        <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6zm9-12h2v12h-2z"/></svg></button>
+      <button class="ic" id="b-repetir" title="Repetir frase / Repeat line (R)">
+        <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg></button>
+      <span id="relogio">0:00 / 0:00</span>
+
+      <span class="espaco"></span>
+
+      <div class="grupo" id="g-leg" title="Legendas / Subtitles (S)">
+        <button data-modo="off">Off</button>
+        <button data-modo="pt">PT</button>
+        <button data-modo="en">EN</button>
+        <button data-modo="ambas">PT+EN</button>
+      </div>
+
+      <span class="so-largo sinc-box" title="Sincronia da legenda / Subtitle delay (G / H)">
+        <button class="ic" id="b-sinc-menos" style="width:30px">−</button>
+        <span id="sinc">0.0s</span>
+        <button class="ic" id="b-sinc-mais" style="width:30px">+</button>
+      </span>
+
+      <select id="vel" title="Velocidade / Speed">
+        <option value="0.75">0.75×</option><option value="0.9">0.9×</option>
+        <option value="1" selected>1×</option><option value="1.25">1.25×</option>
+      </select>
+      <input type="range" id="volume" min="0" max="1" step="0.05" value="1" title="Volume">
+      <button class="ic" id="b-ajuda" title="Atalhos / Shortcuts (?)">?</button>
+      <button class="ic" id="b-tela" title="Tela cheia / Fullscreen (F)">
+        <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7zm-2-4h2V7h3V5H5zm12 7h-3v2h5v-5h-2zM14 5v2h3v3h2V5z"/></svg></button>
+    </div>
+  </div>
+
+  <div id="ajuda" class="oculto"><div>
+    <b>Atalhos · Shortcuts</b><br><br>
+    <table>
+      <tr><td>Espaço</td><td>Play / Pause</td></tr>
+      <tr><td>← →</td><td>−10s / +10s</td></tr>
+      <tr><td>A / D</td><td>Frase anterior / próxima · Previous / next line</td></tr>
+      <tr><td>R</td><td>Repetir a frase · Repeat line</td></tr>
+      <tr><td>S</td><td>Trocar legenda · Switch subtitles</td></tr>
+      <tr><td>G / H</td><td>Atrasar / adiantar legenda · Subtitle delay</td></tr>
+      <tr><td>[ ]</td><td>Velocidade · Speed</td></tr>
+      <tr><td>↑ ↓</td><td>Volume</td></tr>
+      <tr><td>F</td><td>Tela cheia · Fullscreen</td></tr>
+    </table>
+  </div></div>
+</section>
+
+<script>
+/* =====================================================================
+   Sessão Brasil — player com legendas duplas para estudar português.
+   A lista de filmes vem do arquivo filmes.json, na mesma pasta.
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const video = $("video");
+
+const estado = {
+  filme: null,          // { titulo, chave }
+  legendas: { pt: [], en: [] },
+  modo: "ambas",        // off | pt | en | ambas
+  atraso: 0,            // segundos somados ao tempo da legenda
+};
+
+// ---------- armazenamento local (nunca pode derrubar a página) ----------
+const guardar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const ler = (k, padrao) => {
+  try { const v = localStorage.getItem(k); return v === null ? padrao : JSON.parse(v); }
+  catch (e) { return padrao; }
+};
+
+// ---------- legendas ----------
+// Legendas em português costumam vir em Windows-1252: lidas como UTF-8,
+// "ção" vira "Ã§Ã£o". Tenta UTF-8 estrito e, se falhar, usa Windows-1252.
+function decodificar(buffer) {
+  try { return new TextDecoder("utf-8", { fatal: true }).decode(buffer); }
+  catch (e) { return new TextDecoder("windows-1252").decode(buffer); }
+}
+
+function tempoEmSegundos(t) {
+  const p = t.trim().replace(",", ".").split(":");
+  let s = 0;
+  for (const x of p) s = s * 60 + parseFloat(x);
+  return s;
+}
+
+function limparTexto(t) {
+  // remove marcações de karaokê/posição ({\an8}) e escapa HTML,
+  // mantendo só itálico e negrito
+  t = t.replace(/\{\\[^}]*\}/g, "");
+  t = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return t.replace(/&lt;(\/?)(i|b)&gt;/gi, "<$1$2>").replace(/&lt;[^&]*&gt;/g, "");
+}
+
+function lerLegenda(texto) {
+  texto = texto.replace(/^﻿/, "").replace(/\r\n?/g, "\n");
+  const blocos = texto.split(/\n{2,}/);
+  const cues = [];
+  for (const b of blocos) {
+    const linhas = b.split("\n");
+    const i = linhas.findIndex(l => l.includes("-->"));
+    if (i === -1) continue;
+    const [ini, fim] = linhas[i].split("-->").map(x => x.trim().split(" ")[0]);
+    const corpo = linhas.slice(i + 1).join("\n").trim();
+    if (!corpo) continue;
+    cues.push({ ini: tempoEmSegundos(ini), fim: tempoEmSegundos(fim), txt: limparTexto(corpo) });
+  }
+  return cues.sort((a, b) => a.ini - b.ini);
+}
+
+async function carregarLegenda(origem) {
+  if (!origem) return [];
+  try {
+    const buf = origem instanceof File
+      ? await origem.arrayBuffer()
+      : await (await fetch(origem)).arrayBuffer();
+    return lerLegenda(decodificar(buf));
+  } catch (e) {
+    mostrar("Não consegui abrir a legenda · Could not load subtitles");
+    return [];
+  }
+}
+
+// índice da frase ativa (ou da última que já começou) no tempo t
+function indiceEm(cues, t) {
+  let lo = 0, hi = cues.length - 1, r = -1;
+  while (lo <= hi) {
+    const m = (lo + hi) >> 1;
+    if (cues[m].ini <= t) { r = m; lo = m + 1; } else hi = m - 1;
+  }
+  return r;
+}
+
+function frasesAtivas(cues, t) {
+  // pega a frase que contém t; frases sobrepostas também aparecem
+  const out = [];
+  for (let i = indiceEm(cues, t); i >= 0 && i > indiceEm(cues, t) - 4; i--) {
+    if (t <= cues[i].fim) out.unshift(cues[i].txt);
+  }
+  return out.join("\n");
+}
+
+function desenharLegendas() {
+  const t = video.currentTime - estado.atraso;
+  const m = estado.modo;
+  $("leg-pt").innerHTML = (m === "pt" || m === "ambas") ? frasesAtivas(estado.legendas.pt, t) : "";
+  $("leg-en").innerHTML = (m === "en" || m === "ambas") ? frasesAtivas(estado.legendas.en, t) : "";
+}
+
+// a navegação por frase segue a legenda PT; se não houver, usa a EN
+const PRE_ROLL = 0.15;   // começa a frase um pouquinho antes, pra não cortar a primeira sílaba
+const cuesDeNavegacao = () => estado.legendas.pt.length ? estado.legendas.pt : estado.legendas.en;
+
+function irParaFrase(direcao) {
+  const cues = cuesDeNavegacao();
+  if (!cues.length) return pular(direcao * 5);
+  // o player para PRE_ROLL antes da frase; a busca precisa olhar além disso,
+  // senão "repetir" logo depois de pular repete a frase anterior
+  const t = video.currentTime - estado.atraso + PRE_ROLL + 0.05;
+  let i = indiceEm(cues, t);
+  if (direcao > 0) i = Math.min(i + 1, cues.length - 1);
+  else if (direcao < 0) {
+    // perto do início da frase atual, volta para a anterior
+    if (i >= 0 && t - cues[i].ini < 1) i--;
+    i = Math.max(i, 0);
+  } else i = Math.max(i, 0);
+  video.currentTime = Math.max(0, cues[i].ini + estado.atraso - PRE_ROLL);
+  desenharLegendas();
+}
+
+// ---------- controles ----------
+const fmt = s => {
+  if (!isFinite(s)) return "0:00";
+  s = Math.floor(s);
+  const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = String(s % 60).padStart(2, "0");
+  return h ? `${h}:${String(m).padStart(2, "0")}:${x}` : `${m}:${x}`;
+};
+
+let toastTimer;
+function mostrar(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("on"), 1300);
+}
+
+function pular(s) {
+  video.currentTime = Math.min(Math.max(0, video.currentTime + s), video.duration || 0);
+  mostrar((s > 0 ? "+" : "−") + Math.abs(s) + "s");
+}
+
+function alternarPlay() { video.paused ? video.play() : video.pause(); }
+
+function definirModo(m) {
+  estado.modo = m; guardar("sb_modo", m);
+  document.querySelectorAll("#g-leg button").forEach(b => b.classList.toggle("ativo", b.dataset.modo === m));
+  desenharLegendas();
+}
+const MODOS = ["off", "pt", "en", "ambas"];
+
+function definirAtraso(v) {
+  estado.atraso = Math.round(v * 10) / 10;
+  $("sinc").textContent = (estado.atraso > 0 ? "+" : "") + estado.atraso.toFixed(1) + "s";
+  if (estado.filme) guardar("sb_atraso_" + estado.filme.chave, estado.atraso);
+  desenharLegendas();
+}
+
+function definirVelocidade(v) {
+  video.playbackRate = v; $("vel").value = String(v); mostrar(v + "×");
+}
+
+video.addEventListener("timeupdate", () => {
+  const d = video.duration || 0;
+  $("tempo-barra").value = d ? (video.currentTime / d) * 1000 : 0;
+  $("relogio").textContent = `${fmt(video.currentTime)} / ${fmt(d)}`;
+  desenharLegendas();
+  if (estado.filme && d) {
+    const prog = ler("sb_prog", {});
+    prog[estado.filme.chave] = { t: video.currentTime, d };
+    guardar("sb_prog", prog);
+  }
+});
+video.addEventListener("seeked", desenharLegendas);
+video.addEventListener("play", () => $("ic-play").innerHTML = '<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>');
+video.addEventListener("pause", () => { $("ic-play").innerHTML = '<path d="M8 5v14l11-7z"/>'; acordarControles(); });
+video.addEventListener("error", () => mostrar("Este vídeo não abriu — veja o formato (MP4/H.264)"));
+video.addEventListener("click", alternarPlay);
+
+$("tempo-barra").addEventListener("input", e => {
+  if (video.duration) video.currentTime = (e.target.value / 1000) * video.duration;
+});
+$("b-play").onclick = alternarPlay;
+$("b-menos").onclick = () => pular(-10);
+$("b-mais").onclick = () => pular(10);
+$("b-frase-ant").onclick = () => irParaFrase(-1);
+$("b-frase-prox").onclick = () => irParaFrase(1);
+$("b-repetir").onclick = () => { irParaFrase(0); video.play(); mostrar("↺"); };
+$("b-sinc-menos").onclick = () => definirAtraso(estado.atraso - 0.5);
+$("b-sinc-mais").onclick = () => definirAtraso(estado.atraso + 0.5);
+$("vel").onchange = e => definirVelocidade(parseFloat(e.target.value));
+$("volume").oninput = e => video.volume = e.target.value;
+document.querySelectorAll("#g-leg button").forEach(b => b.onclick = () => definirModo(b.dataset.modo));
+$("b-tela").onclick = telaCheia;
+$("b-ajuda").onclick = () => $("ajuda").classList.toggle("oculto");
+$("ajuda").onclick = () => $("ajuda").classList.add("oculto");
+$("voltar").onclick = fecharPlayer;
+
+function telaCheia() {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else $("player").requestFullscreen?.();
+}
+
+// controles somem depois de 3s parado, como no VLC
+let ocioso;
+function acordarControles() {
+  $("player").classList.remove("sem-controles");
+  clearTimeout(ocioso);
+  ocioso = setTimeout(() => { if (!video.paused) $("player").classList.add("sem-controles"); }, 3000);
+}
+["mousemove", "touchstart", "keydown"].forEach(ev => $("player").addEventListener(ev, acordarControles));
+
+document.addEventListener("keydown", e => {
+  if ($("player").classList.contains("oculto") || e.target.tagName === "INPUT" && e.target.type !== "range") return;
+  const k = e.key.toLowerCase();
+  const acoes = {
+    " ": alternarPlay, "k": alternarPlay,
+    "arrowleft": () => pular(-10), "arrowright": () => pular(10),
+    "a": () => irParaFrase(-1), "d": () => irParaFrase(1),
+    "r": () => { irParaFrase(0); video.play(); },
+    "s": () => { const m = MODOS[(MODOS.indexOf(estado.modo) + 1) % 4]; definirModo(m); mostrar("Legenda: " + m.toUpperCase()); },
+    "g": () => { definirAtraso(estado.atraso - 0.5); mostrar("Legenda " + $("sinc").textContent); },
+    "h": () => { definirAtraso(estado.atraso + 0.5); mostrar("Legenda " + $("sinc").textContent); },
+    "[": () => definirVelocidade(Math.max(0.5, Math.round((video.playbackRate - 0.1) * 100) / 100)),
+    "]": () => definirVelocidade(Math.min(2, Math.round((video.playbackRate + 0.1) * 100) / 100)),
+    "arrowup": () => { video.volume = Math.min(1, video.volume + .1); $("volume").value = video.volume; mostrar("Vol " + Math.round(video.volume * 100) + "%"); },
+    "arrowdown": () => { video.volume = Math.max(0, video.volume - .1); $("volume").value = video.volume; mostrar("Vol " + Math.round(video.volume * 100) + "%"); },
+    "f": telaCheia, "?": () => $("ajuda").classList.toggle("oculto"),
+    "escape": () => $("ajuda").classList.add("oculto"),
+  };
+  if (acoes[k]) { e.preventDefault(); acoes[k](); }
+});
+
+// ---------- abrir e fechar filmes ----------
+async function abrirFilme({ titulo, video: src, pt, en, chave }) {
+  estado.filme = { titulo, chave };
+  $("titulo").textContent = titulo;
+  $("biblioteca").classList.add("oculto");
+  $("player").classList.remove("oculto");
+  $("leg-pt").innerHTML = $("leg-en").innerHTML = "";
+
+  [estado.legendas.pt, estado.legendas.en] = await Promise.all([carregarLegenda(pt), carregarLegenda(en)]);
+  definirAtraso(ler("sb_atraso_" + chave, 0));
+  video.src = src;
+
+  // volta de onde parou (se não estava praticamente no fim)
+  const p = ler("sb_prog", {})[chave];
+  video.addEventListener("loadedmetadata", () => {
+    if (p && p.t > 10 && p.t < video.duration - 30) {
+      video.currentTime = p.t - 3;
+      mostrar("Continuando de " + fmt(p.t) + " · Resuming");
+    }
+  }, { once: true });
+  video.play().catch(() => {});
+  acordarControles();
+}
+
+function fecharPlayer() {
+  video.pause();
+  if (document.fullscreenElement) document.exitFullscreen();
+  if (video.src.startsWith("blob:")) URL.revokeObjectURL(video.src);
+  video.removeAttribute("src"); video.load();
+  $("player").classList.add("oculto");
+  $("biblioteca").classList.remove("oculto");
+  montarBiblioteca();
+}
+
+let lista = [];
+function montarBiblioteca() {
+  const prog = ler("sb_prog", {});
+  $("grade").innerHTML = "";
+  lista.forEach((f, i) => {
+    const p = prog[f.video];
+    const pct = p && p.d ? Math.min(100, (p.t / p.d) * 100) : 0;
+    const b = document.createElement("button");
+    b.className = "filme";
+    b.innerHTML = `<b></b><small></small><div class="barra-prog"><i style="width:${pct}%"></i></div>`;
+    b.querySelector("b").textContent = f.titulo;
+    b.querySelector("small").textContent = [f.ano, f.legendas?.pt && "PT", f.legendas?.en && "EN"].filter(Boolean).join(" · ");
+    b.onclick = () => abrirFilme({ titulo: f.titulo, video: f.video, pt: f.legendas?.pt, en: f.legendas?.en, chave: f.video });
+    $("grade").appendChild(b);
+  });
+}
+
+async function carregarLista() {
+  try {
+    const r = await fetch("filmes.json", { cache: "no-cache" });
+    if (!r.ok) throw new Error(r.status);
+    lista = await r.json();
+    montarBiblioteca();
+  } catch (e) {
+    const a = $("aviso-lista");
+    a.textContent = "Lista de filmes não encontrada (filmes.json). Você ainda pode abrir arquivos do dispositivo abaixo.";
+    a.classList.remove("oculto");
+  }
+}
+
+$("abrir-local").onclick = () => {
+  const v = $("arq-video").files[0];
+  if (!v) return alert("Escolha o vídeo · Choose a video");
+  abrirFilme({
+    titulo: v.name.replace(/\.[^.]+$/, ""),
+    video: URL.createObjectURL(v),
+    pt: $("arq-pt").files[0], en: $("arq-en").files[0],
+    chave: v.name + ":" + v.size,
+  });
+};
+
+definirModo(ler("sb_modo", "ambas"));
+carregarLista();
+</script>
+</body>
+</html>
