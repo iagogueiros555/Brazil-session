@@ -1,11 +1,11 @@
 [
   {
-    "titulo": "O Auto da Compadicida",
+    "titulo": "O Auto da Compadecida",
     "ano": "2000",
-    "video": "https://pixeldrain.com/api/file/3VufvbpA",
+    "drive": "https://drive.google.com/file/d/19aHMjaG5YVZke2u-85ofXn5YKtLpOqyD/view?usp=sharing",
     "legendas": {
-      "pt": "legendas/o-auto-da-compadecida.pt.srt",
-      "en": "legendas/o-auto-da-compadecida.en.srt"
+      "pt": "legendas/auto-da-compadecida.pt.srt",
+      "en": "legendas/auto-da-compadecida.en.srt"
     }
   }
 ]
