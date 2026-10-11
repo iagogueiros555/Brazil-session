@@ -7,5 +7,14 @@
       "pt": "legendas/turma-da-monica.pt.srt",
       "en": "legendas/turma-da-monica.en.srt"
     }
+  },
+  {
+    "titulo": "Ainda Estou Aqui",
+    "ano": "2024",
+    "drive": "https://drive.google.com/file/d/1e4X6C1rEjf4_Met5RtskH9xI0z3kKKP7/view?usp=sharing",
+    "legendas": {
+      "pt": "legendas/ainda-estou-aqui.pt.srt",
+      "en": "legendas/ainda-estou-aqui.en.srt"
+    }
   }
 ]
