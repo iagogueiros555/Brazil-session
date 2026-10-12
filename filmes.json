@@ -16,5 +16,14 @@
       "pt": "legendas/ainda-estou-aqui.pt.srt",
       "en": "legendas/ainda-estou-aqui.en.srt"
     }
+  },
+  {
+    "titulo": "O Palhaço",
+    "ano": "2011",
+    "drive": "https://pub-85177b14f85f43df867ae04f7a20b076.r2.dev/o-palhaco.mp4",
+    "legendas": {
+      "pt": "legendas/o-palhaco.pt.srt",
+      "en": "legendas/o-palhaco.en.srt"
+    }
   }
 ]
