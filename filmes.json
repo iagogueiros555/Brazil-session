@@ -11,10 +11,10 @@
   {
     "titulo": "Ainda Estou Aqui",
     "ano": "2024",
-    "drive": "https://drive.google.com/file/d/1b7WK_ksHs_lHNDyoIh40wS4SqGQ7OTHp/view?usp=sharing",
+    "video": "https://pub-85177b14f85f43df867ae04f7a20b076.r2.dev/ainda-estou-aqui.mp4",
     "legendas": {
       "pt": "legendas/ainda-estou-aqui.pt.srt",
-      "en": ""
+      "en": "legendas/ainda-estou-aqui.en.srt"
     }
   }
 ]
